@@ -2,6 +2,9 @@
 .Rhistory
 .Rapp.history
 
+# Ignore large data files
+Data/
+
 # Session Data files
 .RData
 .RDataTmp
