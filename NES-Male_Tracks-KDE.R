@@ -123,7 +123,8 @@ seal_colors <- colors[c(3,1,2)]
 colors <- natparks.pals("Torres",7)
 seal_colors <- colors[c(2,3,4)]
 
-# Main Map
+
+# ---- Figure 2 Map ----- #
 map<-ggplot() +
   geom_raster(data = kde_combined_df, aes(x = x, y = y, fill = density), 
               interpolate = TRUE) +
@@ -165,3 +166,76 @@ map
 ggsave("Figures/Track_KDE_HiRes.png", 
        width = 14, height = 6, units = "in", bg = "white", dpi = 600)
 
+
+######### FFA KDE Calculations ##########
+# Subset to Kami records
+kami_ids <- c("2025036","2025037","2025038")
+
+tracks_data_kami <- tracks_data |>
+  filter((TOPPID %in% kami_ids)) |>
+  droplevels()
+
+# Define transit times
+transit <- data.frame(
+  SealID    = c("J914", "J916", "G841"),
+  TOPPID    = c("2025036", "2025037", "2025038"),
+  #out_end   = c(45, 30, 49), # end from speed
+  out_end   = c(35, 30, 31), # end from speed + latitude
+  back_start = c(88, 86, 83))    # start of return transit
+
+transit <- transit |>
+  mutate(TOPPID = factor(TOPPID, levels = levels(tracks_data_kami$TOPPID)))
+
+# Label locations as forage or transit
+tracks_data_kami <- tracks_data_kami |>
+  left_join(transit, by = "TOPPID") |>
+  mutate(phase = case_when(
+    DayofTrip <= out_end    ~ "outbound",
+    DayofTrip >= back_start ~ "return",
+    TRUE                    ~ "forage") |> 
+      factor(levels = c("outbound", "forage", "return")))
+
+# Foraging locations only
+forage_data <- filter(tracks_data_kami, phase == "forage")
+
+# Convert to SpatialPointsDataFrame
+forage_sf<-  forage_data |>
+  st_as_sf(coords = c("lon360", "lat"), crs = 4326) |>
+  st_transform(crs = "+proj=laea +lon_0=-170 +lat_0=55 +units=m")
+
+forage_proj <- forage_sf |>
+  as("Spatial")
+forage_proj$group <- "all"
+
+# --- Group-level bandwidth (all animals pooled) --- #
+all_coords <- coordinates(forage_proj)
+hx_all <- dpik(all_coords[, 1])
+hy_all <- dpik(all_coords[, 2])
+h_group <- sqrt(hx_all * hy_all)
+
+forage_proj$TOPPID <- droplevels(forage_proj$TOPPID)
+
+# KDE with a pooled bandwidth
+kde_ind <- kernelUD(
+  forage_proj[, "TOPPID"],
+  h        = h_group,     # same bandwidth as the pooled fit
+  grid     = 500,
+  extent   = 0.5,
+  same4all = TRUE)         # one common grid for all three
+
+kernel.area(kde_ind, percent = c(50, 95), unout = "km2")
+
+# KDE with individual bandwidths
+#kde_ind <- kernelUD(forage_proj[, "TOPPID"], h = "href", grid = 500, extent = 1)
+
+h_seal <- c("2025036" = 43416, "2025037" = 2970, "2025038" = 30229)  # metres
+
+kde_list <- lapply(names(h_seal), function(id) {
+  sp <- forage_proj[forage_proj$TOPPID == id, "TOPPID"]
+  sp$TOPPID <- droplevels(sp$TOPPID)
+  kernelUD(sp, h = h_seal[[id]], grid = 500, extent = 1)[[1]]})
+
+names(kde_list) <- names(h_seal)
+class(kde_list) <- "estUDm"
+
+kernel.area(kde_list, percent = c(50, 95), unout = "km2")

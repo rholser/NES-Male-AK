@@ -77,7 +77,7 @@ wb <- st_bbox(c(xmin = lon_wide[1], xmax = lon_wide[2],
 track_cols <- natparks.pals("Denali",4)
 track_cols <- track_cols[c(1,3)]
 
-# --- Plots --- #
+# --- Figure S3 --- #
 # Zoomed plot
 aoi <- st_as_sfc(st_bbox(c(xmin = -173, xmax = -166, ymin = 50, ymax = 55),
                          crs = 4326))
