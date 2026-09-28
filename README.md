@@ -2,6 +2,7 @@
 Code associated with analysis of movement and foraging success of adult male northern elephant seals.
 
 Processed data used in the code provided here are available through this Dryad repository:
+http://doi.org/10.5061/dryad.x0k6djj27
 
 
 Scripts here are written in R and accomplish the following objectives:
