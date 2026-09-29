@@ -4,34 +4,44 @@ library(here)
 library(readxl)
 library(patchwork)
 library(ggdark)
-bodymass<-read_xlsx(here("data","NES_Male_foraging.2026v3.xlsx"))
+
+bodymass<-read_xlsx(here("data-raw","NES_Male_foraging.2026v3.xlsx")) |>
+  janitor::clean_names()
 
 
 # Summarize data ----------------------------------------------------------
 
-
 masschange<-bodymass |>
-  filter(!is.na(ARRMASS)) |>
-  select(ID, DEPDATE, `ARR DATE`, SEASON,DEPMASS,ARRMASS,MASSGAIN,DAYSATSEA,ADGAIN,LEANGAIN,`Mj/day`) |>
-  pivot_longer(-c(ID, DEPDATE,`ARR DATE`,MASSGAIN,SEASON)) 
+  filter(!is.na(arrmass)) |>
+  select(id, depdate, arr_date, season,depmass,arrmass,massgain,daysatsea,adgain,leangain,mj_day) |>
+  pivot_longer(-c(id, depdate,arr_date,massgain,season)) 
 
 bodymass<-bodymass |>
-  group_by(ID)|>
-  arrange(DEPDATE)|>
+  group_by(id)|>
+  arrange(depdate)|>
   mutate(DeployType=c("Departure","Arrival"),
-         PercGain=MASSGAIN/DEPMASS)
+         PercGain=massgain/depmass) |>
+  ungroup()
 
 deployTypeSum<-bodymass |>
   group_by(DeployType)|>
   summarise(across(where(is.numeric), mean, na.rm=T))
 
 SeasonSum<-bodymass |>
-  group_by(SEASON)|>
+  group_by(season)|>
   summarise(across(where(is.numeric), mean, na.rm=T))
+
+# Output summary ----------------------------------------------------------
+output<-bodymass |>
+  select(depmass, arrmass, nrg_mj, mj_day) |>
+  set_names(c("depmass_kg","arrmass_kg","MJ_total","MJ_day"))
+
+write_csv(output, here("output", "Summary of mass and energy changes.csv"))
+
 
 # Plots -------------------------------------------------------------------
 
-GMass<-ggplot(data=masschange |>filter(name=="DEPMASS"| name=="ARRMASS"), aes(x=reorder(name, value), y=value))+
+GMass<-ggplot(data=masschange |>filter(name=="depmass"| name=="arrmass"), aes(x=reorder(name, value), y=value))+
   geom_line(aes(group=ID,color=MASSGAIN),linewidth=0.5, alpha=0.65)+
   paletteer::scale_color_paletteer_c("grDevices::Teal", direction=-1, name="Mass gain (kg)")+
   ggdist::stat_pointinterval()+
