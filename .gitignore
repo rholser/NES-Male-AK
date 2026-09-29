@@ -50,3 +50,5 @@ po/*~
 rsconnect/
 
 data-raw/
+
+output/Bioenergetic model output.rds
