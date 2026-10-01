@@ -5,7 +5,7 @@ library(readxl)
 library(patchwork)
 library(ggdark)
 
-bodymass<-read_xlsx(here("data-raw","NES_Male_foraging.2026v3.xlsx")) |>
+bodymass<-read_xlsx(here("data-raw","NES_Male_foraging.2026v4.xlsx")) |>
   janitor::clean_names()
 
 
@@ -42,7 +42,7 @@ write_csv(output, here("output", "Summary of mass and energy changes.csv"))
 # Plots -------------------------------------------------------------------
 
 GMass<-ggplot(data=masschange |>filter(name=="depmass"| name=="arrmass"), aes(x=reorder(name, value), y=value))+
-  geom_line(aes(group=ID,color=MASSGAIN),linewidth=0.5, alpha=0.65)+
+  geom_line(aes(group=id,color=massgain),linewidth=0.75, alpha=0.65)+
   paletteer::scale_color_paletteer_c("grDevices::Teal", direction=-1, name="Mass gain (kg)")+
   ggdist::stat_pointinterval()+
 ggthemes::theme_few()+  
@@ -58,7 +58,7 @@ ggthemes::theme_few()+
   xlab(NULL)+
   ylab("Body mass (kg)")
 
-G2<-  ggplot(data=masschange |>filter(name=="Mj/day"), aes(x=1, y=value))+
+G2<-  ggplot(data=masschange |>filter(name=="mj_day"), aes(x=1, y=value))+
   ggdist::stat_pointinterval()+
   #geom_boxplot()+
   labs(y="Energy gain per day at sea (MJ)", x=NULL)+
@@ -70,7 +70,10 @@ G2<-  ggplot(data=masschange |>filter(name=="Mj/day"), aes(x=1, y=value))+
         axis.ticks.x = element_blank(),
         legend.position =c(0.85,0.145))
   
-GMass+G2+plot_layout(widths=c(1,0.2))
+G<-GMass+G2+plot_layout(widths=c(1,0.2))
+
+ggsave(here("figures","Mass Figure.png"), G,width=8, height=6.5)
+
 
 GMass_epoc<-ggplot(data=masschange |>filter(name=="DEPMASS"| name=="ARRMASS"), aes(x=reorder(name, value), y=value))+
   geom_line(aes(group=ID,color=MASSGAIN),linewidth=2, alpha=0.65)+

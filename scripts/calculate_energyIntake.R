@@ -20,14 +20,14 @@ numseals<-10000 # Just a number higher than the population to draw from
 
 set.seed(38383)
 males<-tibble(sealid=1:numseals, mass=NA, pbtrip=NA,pmtrip=NA,bmr=NA,fmrmult=NA,fmr=NA,
-              me=NA, hif=NA, egainpb=NA, egainpm=NA, netdailyepb=NA, netdailyepm=NA,
+              me=ME, hif=NA, egainpb=NA, egainpm=NA, netdailyepb=NA, netdailyepm=NA,
               medailyepb=NA, medailyepm=NA, grossdailyepb=NA, grossdailyepm=NA,
               grossepb=NA, grossepm=NA) |>
-  mutate(mass=rnorm(numseals, mean=bodyMass, sd=bodyMass_SD),
+  mutate(mass=truncnorm::rtruncnorm(numseals, mean=bodyMass, sd=bodyMass_SD, a=bodyMass_Low, b=bodyMass_Upr),
          pbtrip=truncnorm::rtruncnorm(numseals,mean=tripDur,sd=tripDur_SD, a=tripDur_Low, b=tripDur_Upr),
          pmtrip=truncnorm::rtruncnorm(numseals,mean=tripDur,sd=tripDur_SD, a=tripDur_Low, b=tripDur_Upr),
-         bmr=0.293*mass^0.75, fmrmult=runif(numseals, min=FMR_Low, max=FMR_Upr),
-         fmr=bmr*fmrmult,me=ME, hif=runif(numseals, min=HIF_Low, max=HIF_Upr), 
+         bmr=0.293*mass^0.75, fmr=runif(numseals, min=FMR_Low, max=FMR_Upr)*mass^0.75,
+         hif=runif(numseals, min=HIF_Low, max=HIF_Upr), 
          egainpb=truncnorm::rtruncnorm(numseals, a=eGain_Low, b=eGain_Upr,mean=eGain, sd=eGain_SD),
          egainpm=truncnorm::rtruncnorm(numseals, a=eGain_Low, b=eGain_Upr,mean=eGain, sd=eGain_SD),
          netdailyepb=egainpb+fmr,  netdailyepm=egainpm+fmr,
@@ -62,9 +62,23 @@ malespopSum <- malespop |>
   ungroup()
 
 # Population summary
-malespopSum|>group_by(popsize)|> summarise(MPop=mean(popGrossE), SDPPop=sd(popGrossE))
+malespopSum|>group_by(popsize)|> summarise(MPop=mean(popGrossE)/1000, SDPPop=sd(popGrossE)/1000)
+
+# Individual smmary
+summary(malespopSum$grossdaily)
+summary(malespopSum$dailygrosssd)
+summary(malespopSum$propfmrgrossdaily)
+summary(malespopSum$propegaingrossdaily)
+summary(malespopSum$yearlygross)
+summary(malespopSum$yearlygrosssd)
+
 
 # Save output -------------------------------------------------------------
 
 saveRDS(malespop, here("output","Bioenergetic model output.rds"))
-  
+
+# Jaw accelerometer  seals-----------------------------------------------------
+
+jaw<-data.frame(seal=c("J914", "J916", "G841"),mass=c(1241.5,1429.4, 1226.9), egain=c(9408,7945,3928), trip=c(127,116,127),
+                feedingevents=c(0.56, 0.77, 0.55), focalforagedays=c(53,56,52), foragedays=)|>
+  mutate(fmr=trip*(FMR*mass^0.75), me=(fmr+egain)*(1-HIF), gross=me/ME, focalnrg=gross*feedingevents/focalforagedays)
