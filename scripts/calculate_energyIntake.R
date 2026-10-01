@@ -64,11 +64,25 @@ malespopSum <- malespop |>
 # Population summary
 malespopSum|>group_by(popsize)|> summarise(MPop=mean(popGrossE)/1000, SDPPop=sd(popGrossE)/1000)
 
-# Individual smmary
+# Individual summary - Text
 summary(malespopSum$grossdaily)
 summary(malespopSum$dailygrosssd)
 summary(malespopSum$propfmrgrossdaily)
 summary(malespopSum$propegaingrossdaily)
+summary(malespopSum$yearlygross)
+summary(malespopSum$yearlygrosssd)
+
+# Table 1
+summary(malespopSum$dailyfmr)
+summary(malespopSum$dailyfmrsd)
+summary(malespopSum$dailyegain)
+summary(malespopSum$dailyegainsd)
+summary(malespopSum$grossdaily)
+summary(malespopSum$dailygrosssd)
+summary(malespopSum$yearlyfmr)
+summary(malespopSum$yearlyfmrsd)
+summary(malespopSum$yearlyegain)
+summary(malespopSum$yearlyegainsd)
 summary(malespopSum$yearlygross)
 summary(malespopSum$yearlygrosssd)
 
